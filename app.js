@@ -3,7 +3,9 @@ var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
+var session = require('express-session');
 var bodyParser = require('body-parser');
+var uid2 = require('uid2');
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
@@ -15,6 +17,35 @@ var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var GOOGLE_CLIENT_ID = "287459507572-fuf77ilmfdgqn1954bdor8ktt84uvpcu.apps.googleusercontent.com";
 var GOOGLE_CLIENT_SECRET = "7m3U08E4c--l3RJiykiO22rN";
 var GOOGLE_CALLBACK_URL = "http://localhost:3000/oauth2callback"
+
+
+passport.use(new GoogleStrategy({  
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: GOOGLE_CALLBACK_URL
+    },
+    function(accessToken, refreshToken, profile, done) {
+      // console.log(profile)
+      console.log("THIS IS THE TOKEN")
+      console.log(accessToken)
+        process.nextTick(function () {
+            return done(null, profile);
+        });
+    }
+));
+
+passport.serializeUser(function(user, done) {  
+    console.log("serlializing user");
+    console.log(user)
+    done(null, user);
+});
+
+passport.deserializeUser(function(user, callback){
+       console.log('deserialize user.');
+       console.log(user)
+       callback(null, user);
+    });
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -27,11 +58,60 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({
+  genid: function(req) {
+    return "whatever" //uid2.genuuid() // use UUIDs for session IDs
+  },
+  secret: 'keyboard cat'
+}))
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/', routes);
+
+
+
+var router = express.Router();
+router.get('/', function(req, res, next) {
+  res.send('Welcome!')
+  console.log(req.user)
+});
+
+
+//login success route
+router.get('/login_success', function(req, res){
+  res.send('login succeedz!');
+});
+
+//login fail route
+router.get('/login_fail', function(req, res){
+  res.send('login failed!');
+});
+
+//authenticate
+router.get('/auth/google', passport.authenticate('google',  
+    { scope: ['https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/userinfo.email'] }),
+    function(req, res){} // this never gets called
+);
+
+//redirect after authenticate
+router.get('/oauth2callback',
+  passport.authenticate('google', { failureRedirect: '/login_fail'}),
+  function(req, res) {
+    res.redirect('/api');
+  }
+);
+
+router.get('/api',  
+    ensureAuthenticated,
+    function(req, res) {
+        console.log(req.user)
+        res.send('Hooray! welcome to our api!');
+    }
+); 
+
+app.use('/', router);
 app.use('/users', users);
 
 // catch 404 and forward to error handler
@@ -65,34 +145,13 @@ app.use(function(err, req, res, next) {
   });
 });
 
-passport.use(new GoogleStrategy({  
-        clientID: GOOGLE_CLIENT_ID,
-        clientSecret: GOOGLE_CLIENT_SECRET,
-        callbackURL: GOOGLE_CALLBACK_URL
-    },
-    function(accessToken, refreshToken, profile, done) {
-        process.nextTick(function () {
-            return done(null, profile);
-        });
-    }
-));
-
-passport.serializeUser(function(user, done) {  
-    done(null, user.id);
-});
-
-passport.deserializeUser(function(id, done) {  
-    db.findUserById(id, function(err, user) {
-        done(err, user);
-    });
-});
 
 function ensureAuthenticated(req, res, next) {  
+  console.log("authenticating..")
+  console.log(req.user)
+  console.log(req['user'])
     if (req.isAuthenticated()) { return next(); }
     res.sendStatus(401);
 }
-
-
-
 
 module.exports = app;

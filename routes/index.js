@@ -1,10 +1,13 @@
+
 var express = require('express');
 var router = express.Router();
-var passport = require('passport')
-/* GET home page. */
+//var passport = require('passport')
+
+/* GET home page. 
 //home page
 router.get('/', function(req, res, next) {
   res.send('Welcome!')
+  console.log(req.user)
 });
 
 
@@ -26,26 +29,29 @@ router.get('/auth/google', passport.authenticate('google',
 );
 
 //redirect after authenticate
-router.get('/oauth2callback', passport.authenticate('google',  
-    { successRedirect: '/api', failureRedirect: '/login_fail' }
-));
+router.get('/oauth2callback',
+  passport.authenticate('google', { failureRedirect: '/login_fail'}),
+  function(req, res) {
+    res.redirect('/');
+  }
+);
 
 router.get('/api',  
-    ensureAuthenticated,
+    //ensureAuthenticated,
     function(req, res) {
-        res.send('Hooray! welcome to our api!');
+        console.log(res['headers'])
+        res.render('index', { user: req.user });
+        //res.send('Hooray! welcome to our api!');
     }
 ); 
 
 function ensureAuthenticated(req, res, next) {  
-    if (req.isAuthenticated()) { return next(); }
+    //console.log(req)
+    //console.log(req['user'])
+    if (req.isAuthenticated()) {
+      return next();
+    }
     res.sendStatus(401);
 };
-
-router.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  function(req, res) {
-    res.redirect('/');
-  });
-
+*/
 module.exports = router;
