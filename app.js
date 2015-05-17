@@ -90,8 +90,8 @@ router.get('/login_fail', function(req, res){
 
 //authenticate
 router.get('/auth/google', passport.authenticate('google',  
-    { scope: ['https://www.googleapis.com/auth/userinfo.profile',
-      'https://www.googleapis.com/auth/userinfo.email'] }),
+    { scope: ['https://www.googleapis.com/auth/plus.login',
+    'https://www.googleapis.com/auth/plus.profile.emails.read'] }),
     function(req, res){} // this never gets called
 );
 
